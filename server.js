@@ -10,9 +10,10 @@ const port = 3000;
 const server = http.createServer((req, res) => {
   console.log(req.method, req.url);
   console.log("Welcome to My Notes Server");
-  if (req.method == "GET" && req.url == "/notes") {
+  if (req.url == "/notes") {
     if (req.method == "GET") {
       try {
+        saveInNotes();
         renderData(res);
       } catch (error) {
         res.end("Failed to  get file");
@@ -43,20 +44,20 @@ function renderData(res) {
   }
 }
 
-function saveInNotes() {
-  const dataBuffer = fs.readFileSync(notesPathJson);
-  const dataJSON = dataBuffer.toString();
-  const data = JSON.parse(dataJSON);
-  let text = "Notes are";
+function saveInNotes(data) {
+  const dataJSON = JSON.stringify(data);
+  console.log(dataJSON);
+  return fs.writeFileSync(notesPathJson, dataJSON);
+}
+
+function loadNotes() {
   try {
-    fs.writeFileSync(notesPath, "");
-    data.forEach((val) => {
-      text += `\n${val.id}. ${val.note}`;
-    });
+    const dataBuffer = fs.readFileSync(notesPathJson);
+    const dataJSON = dataBuffer.toString();
+    return JSON.parse(dataJSON);
   } catch (error) {
-    console.log(error);
+    return [];
   }
-  return fs.writeFileSync(notesPath, text);
 }
 
 function getData(req, res) {
@@ -66,13 +67,22 @@ function getData(req, res) {
   });
   req.on("end", () => {
     const dataJSON = JSON.parse(data);
-    saveNotes(notesPath, dataJSON.note);
-    console.log(dataJSON.note);
+    saveNotes(dataJSON);
     res.end("notes saved successfully!");
   });
 }
 
-function saveNotes(data) {}
+function saveNotes(val) {
+  const data = loadNotes();
+  const index = data.length;
+  const obj = {
+    id: index + 1,
+    note: `${val.note}`,
+  };
+  data.push(obj);
+  console.log(data);
+  saveInNotes(data);
+}
 
 function getNotesData() {}
 server.listen(port, () => {
