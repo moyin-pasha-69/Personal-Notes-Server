@@ -8,12 +8,9 @@ const { domainToASCII } = require("url");
 
 const port = 3000;
 const server = http.createServer((req, res) => {
-  console.log(req.method, req.url);
-  console.log("Welcome to My Notes Server");
   if (req.url == "/notes") {
     if (req.method == "GET") {
       try {
-        saveInNotes();
         renderData(res);
       } catch (error) {
         res.end("Failed to  get file");
@@ -33,20 +30,20 @@ const server = http.createServer((req, res) => {
 });
 
 function renderData(res) {
-  const dataBuffer = fs.readFileSync(notesPath);
-  const data = dataBuffer.toString();
+  const data = loadNotes();
   res.setHeader("Content-Type", "text/plain");
   if (data.length == 0) {
     res.end("There is no notes!");
   } else {
-    res.write(`${data}`);
+    data.forEach((val) => {
+      res.write(`${val.id}. ${val.note}\n`);
+    });
     res.end("");
   }
 }
 
 function saveInNotes(data) {
   const dataJSON = JSON.stringify(data);
-  console.log(dataJSON);
   return fs.writeFileSync(notesPathJson, dataJSON);
 }
 
@@ -66,26 +63,28 @@ function getData(req, res) {
     data += chunks;
   });
   req.on("end", () => {
-    const dataJSON = JSON.parse(data);
-    saveNotes(dataJSON);
-    res.end("notes saved successfully!");
+    saveNotes(data, res);
   });
 }
 
-function saveNotes(val) {
+function saveNotes(val, res) {
   const data = loadNotes();
-  const index = data.length;
-  const obj = {
-    id: index + 1,
-    note: `${val.note}`,
-  };
-  data.push(obj);
-  console.log(data);
-  saveInNotes(data);
+  const ans = data.filter((data) => data.note == val);
+  if (ans.length == 0) {
+    const index = data.length;
+    const obj = {
+      id: index + 1,
+      note: `${val}`,
+    };
+    data.push(obj);
+    saveInNotes(data);
+    res.end("notes saved successfully!");
+  } else {
+    res.end("There is already exist this note");
+    return;
+  }
 }
 
-function getNotesData() {}
 server.listen(port, () => {
-  console.log("server created successfully");
-  console.log(`server at : http://localhost:${port}`);
+  console.log("Welcome to my server");
 });
