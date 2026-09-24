@@ -1,14 +1,14 @@
 const http = require("http");
 const path = require("path");
 const notesPathJson = path.join("data", "notes.json");
-const notesPath = "./notes.txt";
 const fs = require("fs");
 const { error, log } = require("console");
 const { domainToASCII } = require("url");
 
 const port = 3000;
 const server = http.createServer((req, res) => {
-  if (req.url == "/notes") {
+  console.log(req.url);
+  if (req.url == "/notes" || req.url.startsWith("/notes/")) {
     if (req.method == "GET") {
       try {
         renderData(res);
@@ -22,6 +22,9 @@ const server = http.createServer((req, res) => {
         res.statusCode = 500;
         res.end("Something Went wrong");
       }
+    } else if (req.method == "DELETE") {
+      const parts = req.url.split("/");
+      removeNotesData(parts[2], res);
     }
   } else {
     res.statusCode = 404;
@@ -82,6 +85,27 @@ function saveNotes(val, res) {
   } else {
     res.end("There is already exist this note");
     return;
+  }
+}
+
+function removeNotesData(id, res) {
+  let notesList = loadNotes();
+  res.writeHead(200, { "Content-Type": "text/plain" });
+  if (id >= notesList.length) {
+    res.write("id not found");
+    res.end("");
+  } else if (id <= 0) {
+    res.write("Please enter valid id");
+    res.end("");
+  } else {
+    try {
+      const newNotesList = notesList.filter((val) => id != val.id);
+      saveInNotes(newNotesList);
+      res.write(`Notes Deleted successfully! (ID:${id})`);
+      res.end("");
+    } catch (error) {
+      return [];
+    }
   }
 }
 
