@@ -7,7 +7,6 @@ const { domainToASCII } = require("url");
 
 const port = 3000;
 const server = http.createServer((req, res) => {
-  console.log(req.url);
   if (req.url == "/notes" || req.url.startsWith("/notes/")) {
     if (req.method == "GET") {
       try {
@@ -24,7 +23,7 @@ const server = http.createServer((req, res) => {
       }
     } else if (req.method == "DELETE") {
       const parts = req.url.split("/");
-      removeNotesData(parts[2], res);
+      removeNotesData(Number(parts[2]), res);
     }
   } else {
     res.statusCode = 404;
@@ -38,8 +37,8 @@ function renderData(res) {
   if (data.length == 0) {
     res.end("There is no notes!");
   } else {
-    data.forEach((val) => {
-      res.write(`${val.id}. ${val.note}\n`);
+    data.forEach((val, index) => {
+      res.write(`${index + 1}. ${val.note} (ID:${val.id}) \n`);
     });
     res.end("");
   }
@@ -66,7 +65,7 @@ function getData(req, res) {
     data += chunks;
   });
   req.on("end", () => {
-    saveNotes(data, res);
+    saveNotes(data.trim(), res);
   });
 }
 
@@ -91,13 +90,10 @@ function saveNotes(val, res) {
 function removeNotesData(id, res) {
   let notesList = loadNotes();
   res.writeHead(200, { "Content-Type": "text/plain" });
-  if (id >= notesList.length) {
-    res.write("id not found");
-    res.end("");
-  } else if (id <= 0) {
+  if (id <= 0) {
     res.write("Please enter valid id");
     res.end("");
-  } else {
+  } else if (notesList.some((val) => val.id == id)) {
     try {
       const newNotesList = notesList.filter((val) => id != val.id);
       saveInNotes(newNotesList);
@@ -106,6 +102,9 @@ function removeNotesData(id, res) {
     } catch (error) {
       return [];
     }
+  } else {
+    res.write(`ID:${id} does not exist`);
+    res.end("");
   }
 }
 
