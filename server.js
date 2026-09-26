@@ -2,12 +2,10 @@ const http = require("http");
 const path = require("path");
 const notesPathJson = path.join("data", "notes.json");
 const fs = require("fs");
-const { error, log } = require("console");
-const { domainToASCII } = require("url");
 
 const port = 3000;
 const server = http.createServer((req, res) => {
-  if (req.url == "/notes" || req.url.startsWith("/notes/")) {
+  if (req.url == "/notes") {
     if (req.method == "GET") {
       try {
         renderData(res);
@@ -21,16 +19,19 @@ const server = http.createServer((req, res) => {
         res.statusCode = 500;
         res.end("Something Went wrong");
       }
-    } else if (req.method == "DELETE") {
-      const parts = req.url.split("/");
-      removeNotesData(Number(parts[2]), res);
     }
+  } else if (req.url.startsWith("/notes/") && req.method == "DELETE") {
+    const parts = req.url.split("/");
+    removeNotesData(Number(parts[2]), res);
   } else {
     res.statusCode = 404;
     res.end("File not found");
   }
 });
 
+function getNoteId(data) {
+  return Math.max(...data.map((val) => val.id), 0) + 1;
+}
 function renderData(res) {
   const data = loadNotes();
   res.setHeader("Content-Type", "text/plain");
@@ -75,7 +76,7 @@ function saveNotes(val, res) {
   if (ans.length == 0) {
     const index = data.length;
     const obj = {
-      id: index + 1,
+      id: getNoteId(data),
       note: `${val}`,
     };
     data.push(obj);
